@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "7"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{"deployment.kubernetes.io/revision":"4"},"creationTimestamp":"2026-07-10T18:56:04Z","generation":7,"labels":{"app":"web"},"name":"web","namespace":"default","resourceVersion":"5297","uid":"0aaf85ed-8694-40eb-976c-364962f25a48"},"spec":{"progressDeadlineSeconds":600,"replicas":2,"revisionHistoryLimit":10,"selector":{"matchLabels":{"app":"web"}},"strategy":{"rollingUpdate":{"maxSurge":"25%","maxUnavailable":"25%"},"type":"RollingUpdate"},"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"2026-07-10T15:47:09-04:00"},"creationTimestamp":null,"labels":{"app":"web"}},"spec":{"containers":[{"envFrom":[{"configMapRef":{"name":"app-config"}},{"secretRef":{"name":"app-secret"}}],"image":"nginx","imagePullPolicy":"Always","livenessProbe":{"httpGet":{"path":"/","port":80},"initialDelaySeconds":5,"periodSeconds":10},"name":"nginx","readinessProbe":{"httpGet":{"path":"/","port":80},"initialDelaySeconds":2,"periodSeconds":5},"resources":{},"terminationMessagePath":"/dev/termination-log","terminationMessagePolicy":"File","volumeMounts":[{"mountPath":"/etc/app-config","name":"config-volume"}]}],"dnsPolicy":"ClusterFirst","restartPolicy":"Always","schedulerName":"default-scheduler","securityContext":{},"terminationGracePeriodSeconds":30,"volumes":[{"configMap":{"defaultMode":420,"name":"app-config"},"name":"config-volume"}]}}},"status":{"availableReplicas":2,"conditions":[{"lastTransitionTime":"2026-07-10T19:03:07Z","lastUpdateTime":"2026-07-10T19:03:07Z","message":"Deployment has minimum availability.","reason":"MinimumReplicasAvailable","status":"True","type":"Available"},{"lastTransitionTime":"2026-07-10T18:56:04Z","lastUpdateTime":"2026-07-10T19:47:13Z","message":"ReplicaSet \"web-6bbd69ccf5\" has successfully progressed.","reason":"NewReplicaSetAvailable","status":"True","type":"Progressing"}],"observedGeneration":7,"readyReplicas":2,"replicas":2,"updatedReplicas":2}}
+  creationTimestamp: "2026-07-10T18:56:04Z"
+  generation: 10
+  labels:
+    app: web
+  name: web
+  namespace: default
+  resourceVersion: "8449"
+  uid: 0aaf85ed-8694-40eb-976c-364962f25a48
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: web
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2026-07-10T15:47:09-04:00"
+      creationTimestamp: null
+      labels:
+        app: web
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: app-secret
+        image: nginx
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: nginx
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/app-config
+        - name: data-volume
+          mountPath: /usr/share/nginx/html/data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: config-volume
+        configMap:
+          name: app-config
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: web-storage
+status:
+  availableReplicas: 2
+  conditions:
+  - lastTransitionTime: "2026-07-10T19:03:07Z"
+    lastUpdateTime: "2026-07-10T19:03:07Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2026-07-10T18:56:04Z"
+    lastUpdateTime: "2026-07-13T15:40:02Z"
+    message: ReplicaSet "web-dc4967bf6" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 10
+  readyReplicas: 2
+  replicas: 2
+  updatedReplicas: 2
