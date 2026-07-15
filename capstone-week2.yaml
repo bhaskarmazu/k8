@@ -1,0 +1,197 @@
+# Week 2 Weekend Mini-Capstone: podinfo (frontend) + redis (backend)
+# Combines: namespaces, ConfigMap/Secret, PVC, health probes, RBAC, Ingress.
+# Apply with: kubectl apply -f capstone-week2.yaml
+ 
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: capstone
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: podinfo-config
+  namespace: capstone
+data:
+  PODINFO_UI_COLOR: "blue"
+  PODINFO_UI_MESSAGE: "Week 2 Capstone"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: podinfo-secret
+  namespace: capstone
+type: Opaque
+stringData:
+  DEMO_TOKEN: "capstone-demo-token"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-storage
+  namespace: capstone
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: capstone
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        readinessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: capstone
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: podinfo-sa
+  namespace: capstone
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: podinfo-role
+  namespace: capstone
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: podinfo-rolebinding
+  namespace: capstone
+subjects:
+- kind: ServiceAccount
+  name: podinfo-sa
+  namespace: capstone
+roleRef:
+  kind: Role
+  name: podinfo-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+  namespace: capstone
+  labels:
+    app: podinfo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: podinfo
+  template:
+    metadata:
+      labels:
+        app: podinfo
+    spec:
+      serviceAccountName: podinfo-sa
+      containers:
+      - name: podinfo
+        image: stefanprodan/podinfo:latest
+        ports:
+        - containerPort: 9898
+        envFrom:
+        - configMapRef:
+            name: podinfo-config
+        - secretRef:
+            name: podinfo-secret
+        env:
+        - name: PODINFO_CACHE_SERVER
+          value: "tcp://redis:6379"
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9898
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9898
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: podinfo
+  namespace: capstone
+spec:
+  selector:
+    app: podinfo
+  ports:
+  - port: 9898
+    targetPort: 9898
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: podinfo-ingress
+  namespace: capstone
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: capstone.learning.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: podinfo
+            port:
+              number: 9898
