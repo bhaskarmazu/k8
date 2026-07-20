@@ -181,12 +181,12 @@ metadata:
   name: podinfo-ingress
   namespace: capstone
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
 spec:
-  ingressClassName: nginx
+  ingressClassName: alb
   rules:
-  - host: capstone.learning.local
-    http:
+  - http:
       paths:
       - path: /
         pathType: Prefix
